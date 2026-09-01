@@ -26,6 +26,10 @@
       {
         "command": "autoReview.uninstallHooks",
         "title": "Auto Review: Uninstall Git Hooks"
+      },
+      {
+        "command": "autoReview.testTrigger",
+        "title": "Auto Review: Test Trigger (debug)"
       }
     ],
     "configuration": {
@@ -64,17 +68,7 @@
         "autoReview.reviewPrompt": {
           "type": "string",
           "default": "/review",
-          "description": "Text sent to Cursor chat."
-        },
-        "autoReview.chatShortcut": {
-          "type": "string",
-          "default": "l",
-          "description": "Key combined with Cmd to open Cursor chat (default matches Cmd+L)."
-        },
-        "autoReview.activationDelayMs": {
-          "type": "number",
-          "default": 600,
-          "description": "Delay after activating Cursor before sending keystrokes, to let the window focus settle."
+          "description": "Text prefilled into Cursor chat."
         }
       }
     }
@@ -88,8 +82,5 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.4.0"
-  },
-  "dependencies": {
-    "@nut-tree-fork/nut-js": "^4.2.6"
   }
 }

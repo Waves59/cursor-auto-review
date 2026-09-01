@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
-import { keyboard, Key, getWindows } from "@nut-tree-fork/nut-js";
 import { installHook, uninstallHook, HookOptions } from "./hooks";
 
 const log = vscode.window.createOutputChannel("Auto Review");
@@ -9,59 +8,17 @@ function cfg() {
   return vscode.workspace.getConfiguration("autoReview");
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function focusCursorWindow(): Promise<boolean> {
-  const match = cfg().get<string>("windowTitleMatch", "Cursor").toLowerCase();
-  const windows = await getWindows();
-  const titles: string[] = [];
-  for (const w of windows) {
-    const title = await w.getTitle();
-    titles.push(title);
-    if (title.toLowerCase().includes(match)) {
-      await w.focus();
-      log.appendLine(`Focused window: "${title}"`);
-      return true;
-    }
-  }
-  log.appendLine(`No window title matched "${match}". Seen titles: ${JSON.stringify(titles)}`);
-  return false;
-}
-
-// ponytail: keystroke automation via nut-js, no public Cursor chat API exists
-// on any platform. Breaks if Cursor changes its chat shortcut or window
-// model. Swap for a real extension API the day Cursor ships one.
+// Cursor's built-in "cursor-deeplink" extension routes cursor://.../prompt to
+// this exact command (see deeplink.prompt.prefill in workbench.desktop.main.js).
+// It's a normal VS Code command — no keystroke automation, no OS permissions.
 async function triggerChatReview(): Promise<void> {
   const prompt = cfg().get<string>("reviewPrompt", "/review");
-  const shortcutKey = cfg().get<string>("chatShortcut", "l").toUpperCase();
-  const delayMs = cfg().get<number>("activationDelayMs", 600);
-  const modifier = process.platform === "darwin" ? Key.LeftCmd : Key.LeftControl;
-  const letterKey = (Key as unknown as Record<string, Key>)[shortcutKey];
-
   try {
-    const focused = await focusCursorWindow();
-    if (!focused) {
-      log.appendLine("Proceeding without a focus match — relying on whatever window currently has OS focus.");
-    }
-    await sleep(delayMs);
-    if (letterKey !== undefined) {
-      log.appendLine(`Sending ${process.platform === "darwin" ? "Cmd" : "Ctrl"}+${shortcutKey}`);
-      await keyboard.pressKey(modifier, letterKey);
-      await keyboard.releaseKey(modifier, letterKey);
-    } else {
-      log.appendLine(`chatShortcut "${shortcutKey}" is not a valid single letter key, skipping shortcut.`);
-    }
-    await sleep(150);
-    log.appendLine(`Typing prompt: ${prompt}`);
-    await keyboard.type(prompt);
-    await sleep(100);
-    await keyboard.type(Key.Return);
-    log.appendLine("Done.");
+    await vscode.commands.executeCommand("workbench.action.chat.open", prompt);
+    log.appendLine(`Prefilled chat with: ${prompt}`);
   } catch (err) {
     log.appendLine(`Error: ${(err as Error).message}`);
-    vscode.window.showErrorMessage(`Auto Review: failed to trigger chat (${(err as Error).message})`);
+    vscode.window.showErrorMessage(`Auto Review: failed to open chat (${(err as Error).message})`);
   }
 }
 
