@@ -1,0 +1,93 @@
+{
+  "name": "cursor-auto-review",
+  "displayName": "Auto Review on Commit/Push",
+  "description": "Triggers /review in Cursor chat automatically on pre-commit and/or pre-push, configurable per repo.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onUri"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "autoReview.installHooks",
+        "title": "Auto Review: Install Git Hooks"
+      },
+      {
+        "command": "autoReview.uninstallHooks",
+        "title": "Auto Review: Uninstall Git Hooks"
+      }
+    ],
+    "configuration": {
+      "title": "Auto Review",
+      "properties": {
+        "autoReview.enablePreCommit": {
+          "type": "boolean",
+          "default": false,
+          "description": "Trigger /review in chat on pre-commit."
+        },
+        "autoReview.enablePrePush": {
+          "type": "boolean",
+          "default": true,
+          "description": "Trigger /review in chat on pre-push."
+        },
+        "autoReview.mode": {
+          "type": "string",
+          "enum": ["notify", "block"],
+          "enumDescriptions": [
+            "Fire-and-forget: prompt is sent to chat, commit/push proceeds immediately.",
+            "Commit/push waits for you to confirm Allow/Block in a Cursor dialog after reviewing the chat."
+          ],
+          "default": "notify",
+          "description": "Whether the git hook blocks on your review confirmation."
+        },
+        "autoReview.blockTimeoutSec": {
+          "type": "number",
+          "default": 300,
+          "description": "In block mode, how long the hook waits for your Allow/Block confirmation before falling back to blockOnTimeoutAllow."
+        },
+        "autoReview.blockOnTimeoutAllow": {
+          "type": "boolean",
+          "default": true,
+          "description": "In block mode, whether a timed-out confirmation allows (true) or blocks (false) the commit/push."
+        },
+        "autoReview.reviewPrompt": {
+          "type": "string",
+          "default": "/review",
+          "description": "Text sent to Cursor chat."
+        },
+        "autoReview.chatShortcut": {
+          "type": "string",
+          "default": "l",
+          "description": "Key combined with Cmd to open Cursor chat (default matches Cmd+L)."
+        },
+        "autoReview.activationDelayMs": {
+          "type": "number",
+          "default": 600,
+          "description": "Delay after activating Cursor before sending keystrokes, to let the window focus settle."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -w -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.6"
+  }
+}
