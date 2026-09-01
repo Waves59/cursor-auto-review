@@ -4,6 +4,8 @@
   "description": "Triggers /review in Cursor chat automatically on pre-commit and/or pre-push, configurable per repo.",
   "version": "0.1.0",
   "publisher": "local",
+  "author": "Thibault Demars",
+  "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
   },
