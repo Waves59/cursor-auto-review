@@ -3,6 +3,8 @@ import * as fs from "fs";
 import { keyboard, Key, getWindows } from "@nut-tree-fork/nut-js";
 import { installHook, uninstallHook, HookOptions } from "./hooks";
 
+const log = vscode.window.createOutputChannel("Auto Review");
+
 function cfg() {
   return vscode.workspace.getConfiguration("autoReview");
 }
@@ -12,14 +14,19 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function focusCursorWindow(): Promise<boolean> {
+  const match = cfg().get<string>("windowTitleMatch", "Cursor").toLowerCase();
   const windows = await getWindows();
+  const titles: string[] = [];
   for (const w of windows) {
     const title = await w.getTitle();
-    if (title.includes("Cursor")) {
+    titles.push(title);
+    if (title.toLowerCase().includes(match)) {
       await w.focus();
+      log.appendLine(`Focused window: "${title}"`);
       return true;
     }
   }
+  log.appendLine(`No window title matched "${match}". Seen titles: ${JSON.stringify(titles)}`);
   return false;
 }
 
@@ -36,18 +43,24 @@ async function triggerChatReview(): Promise<void> {
   try {
     const focused = await focusCursorWindow();
     if (!focused) {
-      vscode.window.showWarningMessage("Auto Review: Cursor window not found, sending keys anyway.");
+      log.appendLine("Proceeding without a focus match — relying on whatever window currently has OS focus.");
     }
     await sleep(delayMs);
     if (letterKey !== undefined) {
+      log.appendLine(`Sending ${process.platform === "darwin" ? "Cmd" : "Ctrl"}+${shortcutKey}`);
       await keyboard.pressKey(modifier, letterKey);
       await keyboard.releaseKey(modifier, letterKey);
+    } else {
+      log.appendLine(`chatShortcut "${shortcutKey}" is not a valid single letter key, skipping shortcut.`);
     }
     await sleep(150);
+    log.appendLine(`Typing prompt: ${prompt}`);
     await keyboard.type(prompt);
     await sleep(100);
     await keyboard.type(Key.Return);
+    log.appendLine("Done.");
   } catch (err) {
+    log.appendLine(`Error: ${(err as Error).message}`);
     vscode.window.showErrorMessage(`Auto Review: failed to trigger chat (${(err as Error).message})`);
   }
 }
@@ -118,7 +131,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("autoReview.installHooks", installHooksForWorkspace),
-    vscode.commands.registerCommand("autoReview.uninstallHooks", uninstallHooksForWorkspace)
+    vscode.commands.registerCommand("autoReview.uninstallHooks", uninstallHooksForWorkspace),
+    vscode.commands.registerCommand("autoReview.testTrigger", async () => {
+      log.show(true);
+      log.appendLine("--- manual test trigger ---");
+      await triggerChatReview();
+    })
   );
 
   // Keep hooks in sync whenever the user flips the config.
